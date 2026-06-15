@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>타임싱크 — 대학생 일정 관리</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #FAFAFC;
+      --surface: #FFFFFF;
+      --surface2: #F4F4F8;
+      --primary: #5B5FDE;
+      --primary-dark: #4549C7;
+      --primary-light: #E8E9FC;
+      --class: #5B5FDE;
+      --class-light: #E8E9FC;
+      --part: #F49B5C;
+      --part-light: #FDEFE0;
+      --event: #4FAE7F;
+      --event-light: #E0F1E8;
+      --free: #4FAE7F;
+      --busy: #E15454;
+      --text: #1A1A1F;
+      --text2: #6B6B7B;
+      --text3: #A8A8B5;
+      --border: #E8E8EE;
+      --danger: #E15454;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 2px 12px rgba(40,40,80,0.06);
+      --shadow-lg: 0 8px 32px rgba(40,40,80,0.12);
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      max-width: 430px;
+      margin: 0 auto;
+    }
+
+    /* ── 공통 ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 12px 20px; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 15px; font-weight: 700;
+      cursor: pointer; border: none; transition: all .15s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:active { background: var(--primary-dark); transform: scale(.97); }
+    .btn-ghost { background: transparent; color: var(--text2); border: 1.5px solid var(--border); }
+    .btn-ghost:active { background: var(--surface2); }
+    .btn-danger { background: #FEE; color: var(--danger); }
+    .btn-full { width: 100%; }
+    .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+    /* ── 헤더 ── */
+    #app-header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    #app-header .logo {
+      font-size: 20px; font-weight: 700; color: var(--primary);
+      letter-spacing: -0.5px; display: flex; align-items: center; gap: 6px;
+    }
+    #app-header .logo-icon {
+      width: 28px; height: 28px; background: var(--primary); color: #fff;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    #greeting { font-size: 13px; color: var(--text3); }
+
+    /* ── 탭 ── */
+    #tab-bar {
+      background: var(--surface);
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .tab-btn {
+      flex: 1; min-width: 80px; padding: 12px 8px; font-family: inherit; font-size: 13px; font-weight: 500;
+      background: none; border: none; cursor: pointer; color: var(--text3);
+      border-bottom: 2.5px solid transparent; transition: all .15s; white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+
+    /* ── 메인 ── */
+    #main { padding: 16px; padding-bottom: 100px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin: 18px 0 10px; }
+    .section-title:first-child { margin-top: 0; }
+
+    /* ── 홈 카드 ── */
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .stat-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px; box-shadow: var(--shadow);
+    }
+    .stat-card .stat-icon { font-size: 18px; margin-bottom: 6px; }
+    .stat-card .stat-val { font-size: 22px; font-weight: 700; }
+    .stat-card .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .stat-card.classes .stat-val { color: var(--class); }
+    .stat-card.part .stat-val { color: var(--part); }
+    .stat-card.events .stat-val { color: var(--event); }
+    .stat-card.free .stat-val { color: var(--free); }
+
+    .today-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px; box-shadow: var(--shadow); margin-bottom: 14px;
+    }
+    .today-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .today-card-title { font-size: 15px; font-weight: 700; }
+    .today-card-date { font-size: 12px; color: var(--text3); }
+    .today-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px; border-radius: 8px; margin-bottom: 6px;
+      background: var(--surface2);
+    }
+    .today-item:last-child { margin-bottom: 0; }
+    .today-item-time { font-size: 13px; font-weight: 700; color: var(--text); min-width: 50px; }
+    .today-item-tag {
+      display: inline-block; width: 4px; height: 24px; border-radius: 2px;
+    }
+    .today-item.class .today-item-tag { background: var(--class); }
+    .today-item.part .today-item-tag { background: var(--part); }
+    .today-item.event .today-item-tag { background: var(--event); }
+    .today-item-info { flex: 1; }
+    .today-item-name { font-size: 14px; font-weight: 500; }
+    .today-item-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .empty { padding: 24px 12px; text-align: center; color: var(--text3); font-size: 13px; }
+
+    /* ── 시간표 그리드 ── */
+    #timetable-wrap { background: var(--surface); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); overflow-x: auto; }
+    .timetable {
+      display: grid;
+      grid-template-columns: 32px repeat(5, 1fr);
+      gap: 2px;
+      font-size: 11px;
+      min-width: 100%;
+    }
+    .timetable.with-sat { grid-template-columns: 32px repeat(6, 1fr); }
+    .timetable.with-sun { grid-template-columns: 32px repeat(7, 1fr); }
+    .tt-cell {
+      background: var(--surface2); padding: 4px;
+      min-height: 36px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; cursor: pointer; overflow: hidden;
+    }
+    .tt-header { background: transparent; font-weight: 700; color: var(--text2); min-height: 24px; }
+    .tt-time { background: transparent; color: var(--text3); font-size: 10px; min-height: 36px; }
+    .tt-cell.has-class { background: var(--class); color: #fff; font-weight: 500; }
+    .tt-cell.has-part { background: var(--part); color: #fff; font-weight: 500; }
+    .tt-cell.has-class small, .tt-cell.has-part small { font-size: 9px; font-weight: 400; opacity: .9; display: block; }
+
+    /* ── 폼 ── */
+    .form-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px; box-shadow: var(--shadow); margin-bottom: 14px;
+    }
+    .form-row { margin-bottom: 12px; }
+    .form-row:last-child { margin-bottom: 0; }
+    .form-label { display: block; font-size: 12px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-family: inherit; font-size: 14px;
+      outline: none; background: var(--surface);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--primary); }
+    .form-textarea { resize: none; min-height: 60px; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .day-pick { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .day-pick-btn {
+      padding: 8px 0; border-radius: 8px; border: 1.5px solid var(--border);
+      background: var(--surface); font-family: inherit; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all .15s;
+    }
+    .day-pick-btn.selected { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .period-pick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .period-pick-btn {
+      padding: 8px 0; border-radius: 8px; border: 1.5px solid var(--border);
+      background: var(--surface); font-family: inherit; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all .15s;
+    }
+    .period-pick-btn.selected { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    /* ── 리스트 ── */
+    .item-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px; box-shadow: var(--shadow); margin-bottom: 8px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .item-tag { width: 4px; min-height: 36px; border-radius: 2px; flex-shrink: 0; }
+    .item-tag.class { background: var(--class); }
+    .item-tag.part { background: var(--part); }
+    .item-tag.event { background: var(--event); }
+    .item-info { flex: 1; min-width: 0; }
+    .item-name { font-size: 14px; font-weight: 500; }
+    .item-meta { font-size: 12px; color: var(--text3); margin-top: 3px; }
+    .item-del {
+      background: none; border: none; cursor: pointer; color: var(--text3);
+      font-size: 18px; padding: 4px 8px;
+    }
+    .item-del:hover { color: var(--danger); }
+
+    /* ── 캘린더 ── */
+    #cal-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    #cal-nav button { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 20px; padding: 6px 12px; border-radius: 6px; }
+    #cal-nav button:hover { background: var(--surface2); }
+    #cal-month { font-size: 17px; font-weight: 700; }
+    .cal-grid { background: var(--surface); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow); }
+    .cal-week-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+    .cal-week-header div { text-align: center; font-size: 11px; font-weight: 700; color: var(--text2); padding: 6px 0; }
+    .cal-week-header div.sun { color: var(--danger); }
+    .cal-week-header div.sat { color: var(--primary); }
+    .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-day {
+      aspect-ratio: 1; padding: 4px; border-radius: 6px;
+      cursor: pointer; position: relative;
+      display: flex; flex-direction: column; align-items: stretch;
+      font-size: 12px;
+    }
+    .cal-day:hover { background: var(--surface2); }
+    .cal-day.other-month { color: var(--text3); }
+    .cal-day.today { background: var(--primary-light); color: var(--primary); font-weight: 700; }
+    .cal-day.selected { background: var(--primary); color: #fff; }
+    .cal-day-num { font-size: 12px; font-weight: 500; }
+    .cal-day-dots { display: flex; gap: 2px; margin-top: 2px; flex-wrap: wrap; }
+    .cal-dot { width: 4px; height: 4px; border-radius: 50%; }
+    .cal-dot.class { background: var(--class); }
+    .cal-dot.part { background: var(--part); }
+    .cal-dot.event { background: var(--event); }
+    #cal-day-detail {
+      margin-top: 14px; background: var(--surface); border-radius: var(--radius);
+      padding: 14px; box-shadow: var(--shadow);
+    }
+    #cal-detail-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+
+    /* ── 빈 시간 찾기 ── */
+    .free-day-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px; box-shadow: var(--shadow); margin-bottom: 8px;
+    }
+    .free-day-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+    .free-slot {
+      display: inline-block; background: var(--event-light); color: var(--event);
+      padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 700;
+      margin: 3px 3px 0 0;
+    }
+    .busy-bar {
+      display: flex; height: 24px; border-radius: 6px; overflow: hidden;
+      background: var(--surface2); margin-top: 8px;
+    }
+    .busy-segment {
+      flex: 1; position: relative;
+    }
+    .busy-segment.busy { background: var(--busy); }
+    .busy-segment.free { background: var(--free); }
+    .busy-label {
+      display: flex; justify-content: space-between; margin-top: 4px;
+      font-size: 10px; color: var(--text3);
+    }
+
+    /* ── FAB ── */
+    #fab {
+      position: fixed; bottom: 24px; right: calc(50% - 215px + 16px);
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      font-size: 28px; border: none; cursor: pointer;
+      box-shadow: var(--shadow-lg); z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .15s;
+    }
+    #fab:active { transform: scale(.92); }
+
+    /* ── 토스트 ── */
+    #toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--text); color: #fff; padding: 10px 20px; border-radius: 99px;
+      font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none;
+      transition: all .25s; z-index: 999; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── 모달 ── */
+    #modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4);
+      display: none; align-items: flex-end; justify-content: center; z-index: 500;
+    }
+    #modal-bg.show { display: flex; }
+    #modal {
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 430px; max-height: 85vh; overflow-y: auto;
+      padding: 20px; animation: slideUp .25s;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    #modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+    .type-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .type-pick-btn {
+      padding: 12px 6px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+      background: var(--surface); font-family: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all .15s; text-align: center;
+    }
+    .type-pick-btn .type-emoji { display: block; font-size: 22px; margin-bottom: 4px; }
+    .type-pick-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<header id="app-header">
+  <div class="logo">
+    <div class="logo-icon">⏱</div>
+    <span>타임싱크</span>
+  </div>
+  <div id="greeting">대학생 일정 관리</div>
+</header>
+
+<div id="tab-bar">
+  <button class="tab-btn active" data-tab="home">홈</button>
+  <button class="tab-btn" data-tab="timetable">시간표</button>
+  <button class="tab-btn" data-tab="parttime">알바</button>
+  <button class="tab-btn" data-tab="calendar">캘린더</button>
+  <button class="tab-btn" data-tab="freetime">빈 시간</button>
+</div>
+
+<main id="main">
+
+  <!-- ── 홈 ── -->
+  <div id="home-page" class="page active">
+    <div class="stat-grid">
+      <div class="stat-card classes"><div class="stat-icon">📚</div><div class="stat-val" id="stat-classes">0</div><div class="stat-label">수업 (주간)</div></div>
+      <div class="stat-card part"><div class="stat-icon">💼</div><div class="stat-val" id="stat-part">0</div><div class="stat-label">알바 (주간)</div></div>
+      <div class="stat-card events"><div class="stat-icon">📌</div><div class="stat-val" id="stat-events">0</div><div class="stat-label">예정된 약속</div></div>
+      <div class="stat-card free"><div class="stat-icon">🕊</div><div class="stat-val" id="stat-free">0</div><div class="stat-label">빈 시간 (오늘, 시간)</div></div>
+    </div>
+
+    <div class="today-card">
+      <div class="today-card-header">
+        <div class="today-card-title">📅 오늘의 일정</div>
+        <div class="today-card-date" id="today-date"></div>
+      </div>
+      <div id="today-list"></div>
+    </div>
+
+    <div class="today-card">
+      <div class="today-card-header">
+        <div class="today-card-title">🔜 다가오는 일정</div>
+      </div>
+      <div id="upcoming-list"></div>
+    </div>
+  </div>
+
+  <!-- ── 시간표 ── -->
+  <div id="timetable-page" class="page">
+    <div class="section-title">📚 내 시간표</div>
+    <div id="timetable-wrap">
+      <div class="timetable" id="timetable-grid"></div>
+    </div>
+
+    <div class="section-title">➕ 수업 추가</div>
+    <div class="form-card">
+      <div class="form-row">
+        <label class="form-label">과목명</label>
+        <input type="text" class="form-input" id="class-name" placeholder="예: 디지털 인문학" />
+      </div>
+      <div class="form-row">
+        <label class="form-label">교수명 (선택)</label>
+        <input type="text" class="form-input" id="class-prof" placeholder="예: 이승은" />
+      </div>
+      <div class="form-row">
+        <label class="form-label">요일</label>
+        <div class="day-pick" id="class-day-pick">
+          <button class="day-pick-btn" data-day="0">월</button>
+          <button class="day-pick-btn" data-day="1">화</button>
+          <button class="day-pick-btn" data-day="2">수</button>
+          <button class="day-pick-btn" data-day="3">목</button>
+          <button class="day-pick-btn" data-day="4">금</button>
+          <button class="day-pick-btn" data-day="5">토</button>
+          <button class="day-pick-btn" data-day="6">일</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">교시 (여러 개 가능)</label>
+        <div class="period-pick" id="class-period-pick"></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">강의실 (선택)</label>
+        <input type="text" class="form-input" id="class-room" placeholder="예: 백주년기념관 302호" />
+      </div>
+      <button class="btn btn-primary btn-full" id="add-class-btn">시간표에 추가</button>
+    </div>
+
+    <div class="section-title">📋 등록된 수업</div>
+    <div id="class-list"></div>
+  </div>
+
+  <!-- ── 알바 ── -->
+  <div id="parttime-page" class="page">
+    <div class="section-title">💼 알바 일정 추가</div>
+    <div class="form-card">
+      <div class="form-row">
+        <label class="form-label">알바명</label>
+        <input type="text" class="form-input" id="part-name" placeholder="예: 카페 알바" />
+      </div>
+      <div class="form-row">
+        <label class="form-label">요일 (여러 개 가능)</label>
+        <div class="day-pick" id="part-day-pick">
+          <button class="day-pick-btn" data-day="0">월</button>
+          <button class="day-pick-btn" data-day="1">화</button>
+          <button class="day-pick-btn" data-day="2">수</button>
+          <button class="day-pick-btn" data-day="3">목</button>
+          <button class="day-pick-btn" data-day="4">금</button>
+          <button class="day-pick-btn" data-day="5">토</button>
+          <button class="day-pick-btn" data-day="6">일</button>
+        </div>
+      </div>
+      <div class="form-row form-grid-2">
+        <div>
+          <label class="form-label">시작 시간</label>
+          <input type="time" class="form-input" id="part-start" value="18:00" />
+        </div>
+        <div>
+          <label class="form-label">종료 시간</label>
+          <input type="time" class="form-input" id="part-end" value="22:00" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">장소 (선택)</label>
+        <input type="text" class="form-input" id="part-place" placeholder="예: 안암역 스타벅스" />
+      </div>
+      <button class="btn btn-primary btn-full" id="add-part-btn">알바 일정 추가</button>
+    </div>
+
+    <div class="section-title">📋 등록된 알바</div>
+    <div id="part-list"></div>
+  </div>
+
+  <!-- ── 캘린더 ── -->
+  <div id="calendar-page" class="page">
+    <div id="cal-nav">
+      <button id="cal-prev">‹</button>
+      <div id="cal-month"></div>
+      <button id="cal-next">›</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-week-header">
+        <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
+      </div>
+      <div class="cal-days" id="cal-days"></div>
+    </div>
+    <div id="cal-day-detail">
+      <div id="cal-detail-title">날짜를 선택하세요</div>
+      <div id="cal-detail-list"></div>
+    </div>
+  </div>
+
+  <!-- ── 빈 시간 찾기 ── -->
+  <div id="freetime-page" class="page">
+    <div class="section-title">🕊 이번 주 빈 시간</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
+      수업·알바·약속을 제외한 평일 9시~22시 사이 빈 시간을 보여줘요.
+    </div>
+    <div id="free-list"></div>
+  </div>
+
+</main>
+
+<button id="fab" title="약속 추가">＋</button>
+<div id="toast"></div>
+
+<!-- ── 약속 추가 모달 ── -->
+<div id="modal-bg">
+  <div id="modal">
+    <div id="modal-title">📌 새 약속 추가</div>
+    <div class="form-row">
+      <label class="form-label">일정 제목</label>
+      <input type="text" class="form-input" id="event-title" placeholder="예: 친구랑 점심" />
+    </div>
+    <div class="form-row form-grid-2">
+      <div>
+        <label class="form-label">날짜</label>
+        <input type="date" class="form-input" id="event-date" />
+      </div>
+      <div>
+        <label class="form-label">장소 (선택)</label>
+        <input type="text" class="form-input" id="event-place" placeholder="장소" />
+      </div>
+    </div>
+    <div class="form-row form-grid-2">
+      <div>
+        <label class="form-label">시작</label>
+        <input type="time" class="form-input" id="event-start" value="12:00" />
+      </div>
+      <div>
+        <label class="form-label">종료</label>
+        <input type="time" class="form-input" id="event-end" value="13:00" />
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">메모 (선택)</label>
+      <textarea class="form-textarea" id="event-memo" placeholder="간단한 메모"></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" id="save-event-btn">저장</button>
+    <button class="btn btn-ghost btn-full" id="cancel-event-btn" style="margin-top:8px">취소</button>
+  </div>
+</div>
+
+<script>
+// ── 상수 ──
+const DAYS_KOR = ['월','화','수','목','금','토','일'];
+const PERIODS = [
+  { num:1, start:'09:00', end:'09:50' },
+  { num:2, start:'10:00', end:'10:50' },
+  { num:3, start:'11:00', end:'11:50' },
+  { num:4, start:'12:00', end:'12:50' },
+  { num:5, start:'13:00', end:'13:50' },
+  { num:6, start:'14:00', end:'14:50' },
+  { num:7, start:'15:00', end:'15:50' },
+  { num:8, start:'16:00', end:'16:50' },
+  { num:9, start:'17:00', end:'17:50' },
+  { num:10, start:'18:00', end:'18:50' },
+];
+
+// ── 스토리지 ──
+function getClasses() { return JSON.parse(localStorage.getItem('ts_classes')||'[]'); }
+function saveClasses(d) { localStorage.setItem('ts_classes', JSON.stringify(d)); }
+function getParts() { return JSON.parse(localStorage.getItem('ts_parts')||'[]'); }
+function saveParts(d) { localStorage.setItem('ts_parts', JSON.stringify(d)); }
+function getEvents() { return JSON.parse(localStorage.getItem('ts_events')||'[]'); }
+function saveEvents(d) { localStorage.setItem('ts_events', JSON.stringify(d)); }
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ── 탭 ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab + '-page').classList.add('active');
+    renderAll();
+  };
+});
+
+// ── 토스트 ──
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── 시간표 페이지 ──
+// 교시 버튼 동적 생성
+const periodPick = document.getElementById('class-period-pick');
+PERIODS.forEach(p => {
+  const btn = document.createElement('button');
+  btn.className = 'period-pick-btn';
+  btn.dataset.period = p.num;
+  btn.textContent = p.num + '교시';
+  btn.onclick = () => btn.classList.toggle('selected');
+  periodPick.appendChild(btn);
+});
+
+// 요일 단일 선택
+document.querySelectorAll('#class-day-pick .day-pick-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#class-day-pick .day-pick-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  };
+});
+// 알바 요일 다중 선택
+document.querySelectorAll('#part-day-pick .day-pick-btn').forEach(btn => {
+  btn.onclick = () => btn.classList.toggle('selected');
+});
+
+document.getElementById('add-class-btn').onclick = () => {
+  const name = document.getElementById('class-name').value.trim();
+  const prof = document.getElementById('class-prof').value.trim();
+  const room = document.getElementById('class-room').value.trim();
+  const daySel = document.querySelector('#class-day-pick .day-pick-btn.selected');
+  const periodSel = [...document.querySelectorAll('#class-period-pick .period-pick-btn.selected')].map(b => parseInt(b.dataset.period));
+  if (!name) { toast('과목명을 입력해 주세요'); return; }
+  if (!daySel) { toast('요일을 선택해 주세요'); return; }
+  if (!periodSel.length) { toast('교시를 선택해 주세요'); return; }
+  const all = getClasses();
+  all.push({ id: Date.now().toString(), name, prof, room, day: parseInt(daySel.dataset.day), periods: periodSel });
+  saveClasses(all);
+  toast('수업 추가 완료!');
+  // 폼 리셋
+  document.getElementById('class-name').value = '';
+  document.getElementById('class-prof').value = '';
+  document.getElementById('class-room').value = '';
+  document.querySelectorAll('#class-day-pick .day-pick-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('#class-period-pick .period-pick-btn').forEach(b => b.classList.remove('selected'));
+  renderAll();
+};
+
+document.getElementById('add-part-btn').onclick = () => {
+  const name = document.getElementById('part-name').value.trim();
+  const place = document.getElementById('part-place').value.trim();
+  const start = document.getElementById('part-start').value;
+  const end = document.getElementById('part-end').value;
+  const daySel = [...document.querySelectorAll('#part-day-pick .day-pick-btn.selected')].map(b => parseInt(b.dataset.day));
+  if (!name) { toast('알바명을 입력해 주세요'); return; }
+  if (!daySel.length) { toast('요일을 선택해 주세요'); return; }
+  if (!start || !end) { toast('시간을 입력해 주세요'); return; }
+  const all = getParts();
+  all.push({ id: Date.now().toString(), name, place, days: daySel, start, end });
+  saveParts(all);
+  toast('알바 일정 추가!');
+  document.getElementById('part-name').value = '';
+  document.getElementById('part-place').value = '';
+  document.querySelectorAll('#part-day-pick .day-pick-btn').forEach(b => b.classList.remove('selected'));
+  renderAll();
+};
+
+// ── 시간표 그리드 렌더링 ──
+function renderTimetable() {
+  const grid = document.getElementById('timetable-grid');
+  const classes = getClasses();
+  const parts = getParts();
+  const hasSat = classes.some(c => c.day === 5) || parts.some(p => p.days.includes(5));
+  const hasSun = classes.some(c => c.day === 6) || parts.some(p => p.days.includes(6));
+  const numDays = hasSun ? 7 : (hasSat ? 6 : 5);
+  grid.className = 'timetable' + (hasSun ? ' with-sun' : hasSat ? ' with-sat' : '');
+  grid.innerHTML = '';
+
+  // 헤더
+  grid.appendChild(cell('', 'tt-cell tt-header'));
+  for (let d = 0; d < numDays; d++) grid.appendChild(cell(DAYS_KOR[d], 'tt-cell tt-header'));
+
+  // 시간 그리드
+  PERIODS.forEach(p => {
+    grid.appendChild(cell(p.num + '교시', 'tt-cell tt-time'));
+    for (let d = 0; d < numDays; d++) {
+      const cls = classes.find(c => c.day === d && c.periods.includes(p.num));
+      const partMatch = parts.find(pt => pt.days.includes(d) && isPeriodInPart(p, pt));
+      let c;
+      if (cls) {
+        c = cell(cls.name + (cls.room ? `<small>${cls.room}</small>` : ''), 'tt-cell has-class');
+        c.innerHTML = c.innerHTML; // already html
+      } else if (partMatch) {
+        c = cell(partMatch.name + (partMatch.place ? `<small>${partMatch.place}</small>` : ''), 'tt-cell has-part');
+      } else {
+        c = cell('', 'tt-cell');
+      }
+      grid.appendChild(c);
+    }
+  });
+}
+function cell(text, cls) {
+  const d = document.createElement('div');
+  d.className = cls;
+  d.innerHTML = text;
+  return d;
+}
+function isPeriodInPart(period, part) {
+  // period(09:00~09:50) vs part(start~end) 겹치는지
+  const pStart = toMin(period.start), pEnd = toMin(period.end);
+  const ptStart = toMin(part.start), ptEnd = toMin(part.end);
+  return pStart < ptEnd && pEnd > ptStart;
+}
+function toMin(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+// ── 수업/알바 리스트 ──
+function renderClassList() {
+  const list = document.getElementById('class-list');
+  const classes = getClasses();
+  if (!classes.length) { list.innerHTML = '<div class="empty">등록된 수업이 없어요</div>'; return; }
+  list.innerHTML = '';
+  classes.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'item-card';
+    item.innerHTML = `
+      <div class="item-tag class"></div>
+      <div class="item-info">
+        <div class="item-name">${c.name}${c.prof ? ' · '+c.prof : ''}</div>
+        <div class="item-meta">${DAYS_KOR[c.day]}요일 · ${c.periods.map(p=>p+'교시').join(', ')}${c.room ? ' · '+c.room : ''}</div>
+      </div>
+      <button class="item-del" data-id="${c.id}">×</button>
+    `;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.item-del').forEach(btn => {
+    btn.onclick = () => {
+      saveClasses(getClasses().filter(c => c.id !== btn.dataset.id));
+      toast('삭제했어요');
+      renderAll();
+    };
+  });
+}
+
+function renderPartList() {
+  const list = document.getElementById('part-list');
+  const parts = getParts();
+  if (!parts.length) { list.innerHTML = '<div class="empty">등록된 알바가 없어요</div>'; return; }
+  list.innerHTML = '';
+  parts.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'item-card';
+    item.innerHTML = `
+      <div class="item-tag part"></div>
+      <div class="item-info">
+        <div class="item-name">${p.name}</div>
+        <div class="item-meta">${p.days.map(d=>DAYS_KOR[d]).join(', ')} · ${p.start}~${p.end}${p.place ? ' · '+p.place : ''}</div>
+      </div>
+      <button class="item-del" data-id="${p.id}">×</button>
+    `;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.item-del').forEach(btn => {
+    btn.onclick = () => {
+      saveParts(getParts().filter(p => p.id !== btn.dataset.id));
+      toast('삭제했어요');
+      renderAll();
+    };
+  });
+}
+
+// ── 캘린더 ──
+let calCurrentDate = new Date();
+let calSelectedDate = new Date();
+calCurrentDate.setDate(1);
+calSelectedDate.setHours(0,0,0,0);
+
+function renderCalendar() {
+  const year = calCurrentDate.getFullYear();
+  const month = calCurrentDate.getMonth();
+  document.getElementById('cal-month').textContent = `${year}년 ${month+1}월`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month+1, 0).getDate();
+  const prevLastDate = new Date(year, month, 0).getDate();
+
+  const days = document.getElementById('cal-days');
+  days.innerHTML = '';
+
+  // 이전 달 채우기
+  for (let i = firstDay-1; i >= 0; i--) {
+    days.appendChild(makeDayCell(year, month-1, prevLastDate - i, true));
+  }
+  // 이번 달
+  for (let i = 1; i <= lastDate; i++) {
+    days.appendChild(makeDayCell(year, month, i, false));
+  }
+  // 다음 달 채우기 (6주 채우기)
+  const filled = firstDay + lastDate;
+  const remain = (7 - filled % 7) % 7;
+  for (let i = 1; i <= remain; i++) {
+    days.appendChild(makeDayCell(year, month+1, i, true));
+  }
+
+  renderCalDayDetail();
+}
+
+function makeDayCell(y, m, d, otherMonth) {
+  const date = new Date(y, m, d);
+  const dKey = dateKey(date);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isToday = dKey === dateKey(today);
+  const isSelected = dKey === dateKey(calSelectedDate);
+
+  const cell = document.createElement('div');
+  cell.className = 'cal-day' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
+  cell.innerHTML = `<div class="cal-day-num">${d}</div><div class="cal-day-dots"></div>`;
+
+  // 점 표시
+  const dayIdx = (date.getDay() + 6) % 7; // 일=6, 월=0
+  const dots = cell.querySelector('.cal-day-dots');
+  if (getClasses().some(c => c.day === dayIdx)) dots.innerHTML += '<div class="cal-dot class"></div>';
+  if (getParts().some(p => p.days.includes(dayIdx))) dots.innerHTML += '<div class="cal-dot part"></div>';
+  if (getEvents().some(e => e.date === dKey)) dots.innerHTML += '<div class="cal-dot event"></div>';
+
+  cell.onclick = () => {
+    calSelectedDate = date;
+    renderCalendar();
+  };
+  return cell;
+}
+
+function renderCalDayDetail() {
+  const title = document.getElementById('cal-detail-title');
+  const list = document.getElementById('cal-detail-list');
+  const date = calSelectedDate;
+  const dayIdx = (date.getDay() + 6) % 7;
+  const dKey = dateKey(date);
+  const m = date.getMonth()+1, d = date.getDate();
+  title.textContent = `${m}월 ${d}일 (${DAYS_KOR[dayIdx]}) 일정`;
+
+  const items = [];
+  getClasses().filter(c => c.day === dayIdx).forEach(c => {
+    items.push({
+      type: 'class',
+      name: c.name + (c.room ? ` · ${c.room}` : ''),
+      start: PERIODS[c.periods[0]-1].start,
+      end: PERIODS[c.periods[c.periods.length-1]-1].end,
+    });
+  });
+  getParts().filter(p => p.days.includes(dayIdx)).forEach(p => {
+    items.push({ type: 'part', name: p.name + (p.place ? ` · ${p.place}` : ''), start: p.start, end: p.end });
+  });
+  getEvents().filter(e => e.date === dKey).forEach(e => {
+    items.push({ type: 'event', name: e.title + (e.place ? ` · ${e.place}` : ''), start: e.start, end: e.end, id: e.id });
+  });
+  items.sort((a, b) => a.start.localeCompare(b.start));
+
+  if (!items.length) { list.innerHTML = '<div class="empty">이날은 일정이 없어요</div>'; return; }
+  list.innerHTML = '';
+  items.forEach(it => {
+    const el = document.createElement('div');
+    el.className = `today-item ${it.type}`;
+    el.innerHTML = `
+      <div class="today-item-tag"></div>
+      <div class="today-item-time">${it.start}</div>
+      <div class="today-item-info">
+        <div class="today-item-name">${it.name}</div>
+        <div class="today-item-meta">${it.start} ~ ${it.end}</div>
+      </div>
+      ${it.id ? `<button class="item-del" data-id="${it.id}">×</button>` : ''}
+    `;
+    list.appendChild(el);
+  });
+  list.querySelectorAll('.item-del').forEach(btn => {
+    btn.onclick = () => {
+      saveEvents(getEvents().filter(e => e.id !== btn.dataset.id));
+      toast('약속 삭제됨');
+      renderAll();
+    };
+  });
+}
+
+document.getElementById('cal-prev').onclick = () => {
+  calCurrentDate.setMonth(calCurrentDate.getMonth()-1);
+  renderCalendar();
+};
+document.getElementById('cal-next').onclick = () => {
+  calCurrentDate.setMonth(calCurrentDate.getMonth()+1);
+  renderCalendar();
+};
+
+// ── 약속 추가 모달 ──
+document.getElementById('fab').onclick = () => {
+  document.getElementById('event-date').value = dateKey(calSelectedDate);
+  document.getElementById('modal-bg').classList.add('show');
+};
+document.getElementById('cancel-event-btn').onclick = () => {
+  document.getElementById('modal-bg').classList.remove('show');
+};
+document.getElementById('modal-bg').onclick = (e) => {
+  if (e.target.id === 'modal-bg') document.getElementById('modal-bg').classList.remove('show');
+};
+document.getElementById('save-event-btn').onclick = () => {
+  const title = document.getElementById('event-title').value.trim();
+  const date = document.getElementById('event-date').value;
+  const place = document.getElementById('event-place').value.trim();
+  const start = document.getElementById('event-start').value;
+  const end = document.getElementById('event-end').value;
+  const memo = document.getElementById('event-memo').value.trim();
+  if (!title || !date) { toast('제목과 날짜를 입력해 주세요'); return; }
+  const all = getEvents();
+  all.push({ id: Date.now().toString(), title, date, place, start, end, memo });
+  saveEvents(all);
+  toast('약속이 저장됐어요!');
+  document.getElementById('event-title').value = '';
+  document.getElementById('event-place').value = '';
+  document.getElementById('event-memo').value = '';
+  document.getElementById('modal-bg').classList.remove('show');
+  renderAll();
+};
+
+// ── 빈 시간 계산 ──
+function renderFreetime() {
+  const list = document.getElementById('free-list');
+  list.innerHTML = '';
+
+  // 이번 주 월~일
+  const today = new Date(); today.setHours(0,0,0,0);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const dKey = dateKey(d);
+    const busy = [];
+
+    // 수업
+    getClasses().filter(c => c.day === i).forEach(c => {
+      busy.push({ start: toMin(PERIODS[c.periods[0]-1].start), end: toMin(PERIODS[c.periods[c.periods.length-1]-1].end) });
+    });
+    // 알바
+    getParts().filter(p => p.days.includes(i)).forEach(p => {
+      busy.push({ start: toMin(p.start), end: toMin(p.end) });
+    });
+    // 약속
+    getEvents().filter(e => e.date === dKey).forEach(e => {
+      busy.push({ start: toMin(e.start), end: toMin(e.end) });
+    });
+
+    // 9:00 ~ 22:00 사이 빈 시간 계산
+    busy.sort((a,b) => a.start - b.start);
+    const free = [];
+    let cur = 9*60;
+    const endOfDay = 22*60;
+    busy.forEach(b => {
+      if (b.start > cur) free.push({ start: cur, end: Math.min(b.start, endOfDay) });
+      cur = Math.max(cur, b.end);
+    });
+    if (cur < endOfDay) free.push({ start: cur, end: endOfDay });
+
+    const card = document.createElement('div');
+    card.className = 'free-day-card';
+    const m = d.getMonth()+1, day = d.getDate();
+    card.innerHTML = `<div class="free-day-title">${m}월 ${day}일 (${DAYS_KOR[i]})</div>`;
+
+    // 막대 시각화
+    const bar = document.createElement('div');
+    bar.className = 'busy-bar';
+    const totalMin = endOfDay - 9*60;
+    let pos = 9*60;
+    free.forEach(f => {
+      if (f.start > pos) {
+        const seg = document.createElement('div');
+        seg.className = 'busy-segment busy';
+        seg.style.flex = (f.start - pos);
+        bar.appendChild(seg);
+      }
+      const seg = document.createElement('div');
+      seg.className = 'busy-segment free';
+      seg.style.flex = (f.end - f.start);
+      bar.appendChild(seg);
+      pos = f.end;
+    });
+    if (pos < endOfDay) {
+      const seg = document.createElement('div');
+      seg.className = 'busy-segment busy';
+      seg.style.flex = (endOfDay - pos);
+      bar.appendChild(seg);
+    }
+    card.appendChild(bar);
+    const label = document.createElement('div');
+    label.className = 'busy-label';
+    label.innerHTML = '<span>9:00</span><span>15:30</span><span>22:00</span>';
+    card.appendChild(label);
+
+    if (free.length) {
+      const slots = document.createElement('div');
+      slots.style.marginTop = '8px';
+      free.forEach(f => {
+        const slot = document.createElement('div');
+        slot.className = 'free-slot';
+        slot.textContent = `${minToStr(f.start)}~${minToStr(f.end)} (${Math.floor((f.end-f.start)/60)}h${(f.end-f.start)%60 ? (f.end-f.start)%60+'m' : ''})`;
+        slots.appendChild(slot);
+      });
+      card.appendChild(slots);
+    } else {
+      const noFree = document.createElement('div');
+      noFree.style.cssText = 'margin-top:8px;font-size:12px;color:var(--text3)';
+      noFree.textContent = '🥲 이날은 빈 시간이 없어요';
+      card.appendChild(noFree);
+    }
+
+    list.appendChild(card);
+  }
+}
+function minToStr(m) {
+  return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+}
+
+// ── 홈 ── 
+function renderHome() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dayIdx = (today.getDay() + 6) % 7;
+  const dKey = dateKey(today);
+
+  document.getElementById('today-date').textContent = `${today.getMonth()+1}월 ${today.getDate()}일 (${DAYS_KOR[dayIdx]})`;
+
+  // 통계
+  const classes = getClasses();
+  const parts = getParts();
+  const events = getEvents();
+  const totalClassHours = classes.reduce((s,c) => s + c.periods.length, 0);
+  const totalPartHours = parts.reduce((s,p) => {
+    return s + p.days.length * ((toMin(p.end) - toMin(p.start)) / 60);
+  }, 0);
+  const upcoming = events.filter(e => e.date >= dKey).length;
+
+  document.getElementById('stat-classes').textContent = totalClassHours;
+  document.getElementById('stat-part').textContent = Math.round(totalPartHours);
+  document.getElementById('stat-events').textContent = upcoming;
+
+  // 오늘 빈 시간
+  const busy = [];
+  classes.filter(c => c.day === dayIdx).forEach(c => {
+    busy.push({ start: toMin(PERIODS[c.periods[0]-1].start), end: toMin(PERIODS[c.periods[c.periods.length-1]-1].end) });
+  });
+  parts.filter(p => p.days.includes(dayIdx)).forEach(p => {
+    busy.push({ start: toMin(p.start), end: toMin(p.end) });
+  });
+  events.filter(e => e.date === dKey).forEach(e => {
+    busy.push({ start: toMin(e.start), end: toMin(e.end) });
+  });
+  busy.sort((a,b) => a.start - b.start);
+  let cur = 9*60, freeMin = 0;
+  busy.forEach(b => {
+    if (b.start > cur) freeMin += Math.min(b.start, 22*60) - cur;
+    cur = Math.max(cur, b.end);
+  });
+  if (cur < 22*60) freeMin += 22*60 - cur;
+  document.getElementById('stat-free').textContent = Math.floor(freeMin/60);
+
+  // 오늘 일정
+  const todayItems = [];
+  classes.filter(c => c.day === dayIdx).forEach(c => {
+    todayItems.push({
+      type: 'class', name: c.name + (c.room ? ` · ${c.room}` : ''),
+      start: PERIODS[c.periods[0]-1].start,
+      end: PERIODS[c.periods[c.periods.length-1]-1].end,
+    });
+  });
+  parts.filter(p => p.days.includes(dayIdx)).forEach(p => {
+    todayItems.push({ type: 'part', name: p.name + (p.place ? ` · ${p.place}` : ''), start: p.start, end: p.end });
+  });
+  events.filter(e => e.date === dKey).forEach(e => {
+    todayItems.push({ type: 'event', name: e.title + (e.place ? ` · ${e.place}` : ''), start: e.start, end: e.end });
+  });
+  todayItems.sort((a,b) => a.start.localeCompare(b.start));
+
+  const todayList = document.getElementById('today-list');
+  if (!todayItems.length) {
+    todayList.innerHTML = '<div class="empty">오늘은 일정이 없어요 🥳</div>';
+  } else {
+    todayList.innerHTML = '';
+    todayItems.forEach(it => {
+      const el = document.createElement('div');
+      el.className = `today-item ${it.type}`;
+      el.innerHTML = `
+        <div class="today-item-tag"></div>
+        <div class="today-item-time">${it.start}</div>
+        <div class="today-item-info">
+          <div class="today-item-name">${it.name}</div>
+          <div class="today-item-meta">${it.start} ~ ${it.end}</div>
+        </div>
+      `;
+      todayList.appendChild(el);
+    });
+  }
+
+  // 다가오는 약속
+  const upcomingList = document.getElementById('upcoming-list');
+  const upcomingEvents = events.filter(e => e.date >= dKey).sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start)).slice(0, 5);
+  if (!upcomingEvents.length) {
+    upcomingList.innerHTML = '<div class="empty">예정된 약속이 없어요</div>';
+  } else {
+    upcomingList.innerHTML = '';
+    upcomingEvents.forEach(e => {
+      const ed = new Date(e.date);
+      const isToday = e.date === dKey;
+      const el = document.createElement('div');
+      el.className = 'today-item event';
+      el.innerHTML = `
+        <div class="today-item-tag"></div>
+        <div class="today-item-time">${isToday ? '오늘' : (ed.getMonth()+1)+'/'+ed.getDate()}</div>
+        <div class="today-item-info">
+          <div class="today-item-name">${e.title}${e.place ? ' · '+e.place : ''}</div>
+          <div class="today-item-meta">${e.start} ~ ${e.end}</div>
+        </div>
+      `;
+      upcomingList.appendChild(el);
+    });
+  }
+}
+
+// ── 전체 렌더링 ──
+function renderAll() {
+  renderHome();
+  renderTimetable();
+  renderClassList();
+  renderPartList();
+  renderCalendar();
+  renderFreetime();
+}
+
+// 초기 실행
+renderAll();
+</script>
+</body>
+</html>
