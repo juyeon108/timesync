@@ -230,7 +230,7 @@
     .cal-day {
       aspect-ratio: 1; padding: 4px; border-radius: 6px;
       cursor: pointer; position: relative;
-      display: flex; flex-direction: column; align-items: stretch;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       font-size: 12px;
     }
     .cal-day:hover { background: var(--surface2); }
@@ -238,7 +238,7 @@
     .cal-day.today { background: var(--primary-light); color: var(--primary); font-weight: 700; }
     .cal-day.selected { background: var(--primary); color: #fff; }
     .cal-day-num { font-size: 12px; font-weight: 500; }
-    .cal-day-dots { display: flex; gap: 2px; margin-top: 2px; flex-wrap: wrap; }
+    .cal-day-dots { display: flex; gap: 2px; margin-top: 2px; flex-wrap: wrap; justify-content: center; min-height: 6px;}
     .cal-dot { width: 4px; height: 4px; border-radius: 50%; }
     .cal-dot.class { background: var(--class); }
     .cal-dot.part { background: var(--part); }
@@ -259,19 +259,6 @@
       display: inline-block; background: var(--event-light); color: var(--event);
       padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 700;
       margin: 3px 3px 0 0;
-    }
-    .busy-bar {
-      display: flex; height: 24px; border-radius: 6px; overflow: hidden;
-      background: var(--surface2); margin-top: 8px;
-    }
-    .busy-segment {
-      flex: 1; position: relative;
-    }
-    .busy-segment.busy { background: var(--busy); }
-    .busy-segment.free { background: var(--free); }
-    .busy-label {
-      display: flex; justify-content: space-between; margin-top: 4px;
-      font-size: 10px; color: var(--text3);
     }
 
     /* ── FAB ── */
@@ -308,15 +295,10 @@
     }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     #modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
-    .type-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-    .type-pick-btn {
-      padding: 12px 6px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
-      background: var(--surface); font-family: inherit; font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: all .15s; text-align: center;
-    }
-    .type-pick-btn .type-emoji { display: block; font-size: 22px; margin-bottom: 4px; }
-    .type-pick-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
 
+    @media (max-width: 430px) {
+      #fab { right: 16px; }
+    }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>
@@ -340,13 +322,12 @@
 
 <main id="main">
 
-  <!-- ── 홈 ── -->
   <div id="home-page" class="page active">
     <div class="stat-grid">
       <div class="stat-card classes"><div class="stat-icon">📚</div><div class="stat-val" id="stat-classes">0</div><div class="stat-label">수업 (주간)</div></div>
       <div class="stat-card part"><div class="stat-icon">💼</div><div class="stat-val" id="stat-part">0</div><div class="stat-label">알바 (주간)</div></div>
       <div class="stat-card events"><div class="stat-icon">📌</div><div class="stat-val" id="stat-events">0</div><div class="stat-label">예정된 약속</div></div>
-      <div class="stat-card free"><div class="stat-icon">🕊</div><div class="stat-val" id="stat-free">0</div><div class="stat-label">빈 시간 (오늘, 시간)</div></div>
+      <div class="stat-card free"><div class="stat-icon">🕊</div><div class="stat-val" id="stat-free">0</div><div class="stat-label">오늘 공강 (교시)</div></div>
     </div>
 
     <div class="today-card">
@@ -365,7 +346,6 @@
     </div>
   </div>
 
-  <!-- ── 시간표 ── -->
   <div id="timetable-page" class="page">
     <div class="section-title">📚 내 시간표</div>
     <div id="timetable-wrap">
@@ -385,13 +365,13 @@
       <div class="form-row">
         <label class="form-label">요일</label>
         <div class="day-pick" id="class-day-pick">
-          <button class="day-pick-btn" data-day="0">월</button>
-          <button class="day-pick-btn" data-day="1">화</button>
-          <button class="day-pick-btn" data-day="2">수</button>
-          <button class="day-pick-btn" data-day="3">목</button>
-          <button class="day-pick-btn" data-day="4">금</button>
-          <button class="day-pick-btn" data-day="5">토</button>
-          <button class="day-pick-btn" data-day="6">일</button>
+          <button class="day-pick-btn" data-day="1">월</button>
+          <button class="day-pick-btn" data-day="2">화</button>
+          <button class="day-pick-btn" data-day="3">수</button>
+          <button class="day-pick-btn" data-day="4">목</button>
+          <button class="day-pick-btn" data-day="5">금</button>
+          <button class="day-pick-btn" data-day="6">토</button>
+          <button class="day-pick-btn" data-day="0">일</button>
         </div>
       </div>
       <div class="form-row">
@@ -409,7 +389,6 @@
     <div id="class-list"></div>
   </div>
 
-  <!-- ── 알바 ── -->
   <div id="parttime-page" class="page">
     <div class="section-title">💼 알바 일정 추가</div>
     <div class="form-card">
@@ -420,13 +399,13 @@
       <div class="form-row">
         <label class="form-label">요일 (여러 개 가능)</label>
         <div class="day-pick" id="part-day-pick">
-          <button class="day-pick-btn" data-day="0">월</button>
-          <button class="day-pick-btn" data-day="1">화</button>
-          <button class="day-pick-btn" data-day="2">수</button>
-          <button class="day-pick-btn" data-day="3">목</button>
-          <button class="day-pick-btn" data-day="4">금</button>
-          <button class="day-pick-btn" data-day="5">토</button>
-          <button class="day-pick-btn" data-day="6">일</button>
+          <button class="day-pick-btn" data-day="1">월</button>
+          <button class="day-pick-btn" data-day="2">화</button>
+          <button class="day-pick-btn" data-day="3">수</button>
+          <button class="day-pick-btn" data-day="4">목</button>
+          <button class="day-pick-btn" data-day="5">금</button>
+          <button class="day-pick-btn" data-day="6">토</button>
+          <button class="day-pick-btn" data-day="0">일</button>
         </div>
       </div>
       <div class="form-row form-grid-2">
@@ -450,7 +429,6 @@
     <div id="part-list"></div>
   </div>
 
-  <!-- ── 캘린더 ── -->
   <div id="calendar-page" class="page">
     <div id="cal-nav">
       <button id="cal-prev">‹</button>
@@ -469,11 +447,10 @@
     </div>
   </div>
 
-  <!-- ── 빈 시간 찾기 ── -->
   <div id="freetime-page" class="page">
-    <div class="section-title">🕊 이번 주 빈 시간</div>
+    <div class="section-title">🕊 평일 빈 교시 찾기</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
-      수업·알바·약속을 제외한 평일 9시~22시 사이 빈 시간을 보여줘요.
+      수업과 알바 일정이 없는 빈 교시(1~10교시)를 요일별로 찾아드려요.
     </div>
     <div id="free-list"></div>
   </div>
@@ -483,7 +460,6 @@
 <button id="fab" title="약속 추가">＋</button>
 <div id="toast"></div>
 
-<!-- ── 약속 추가 모달 ── -->
 <div id="modal-bg">
   <div id="modal">
     <div id="modal-title">📌 새 약속 추가</div>
@@ -521,8 +497,8 @@
 </div>
 
 <script>
-// ── 상수 ──
-const DAYS_KOR = ['월','화','수','목','금','토','일'];
+// ── 상수 (0:일, 1:월, ... 6:토 표준 일치) ──
+const DAYS_KOR = ['일','월','화','수','목','금','토'];
 const PERIODS = [
   { num:1, start:'09:00', end:'09:50' },
   { num:2, start:'10:00', end:'10:50' },
@@ -548,7 +524,7 @@ function dateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// ── 탭 ──
+// ── 탭 전환 ──
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -567,44 +543,46 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2200);
 }
 
-// ── 시간표 페이지 ──
-// 교시 버튼 동적 생성
+// ── 교시 및 요일 세팅 ──
 const periodPick = document.getElementById('class-period-pick');
 PERIODS.forEach(p => {
   const btn = document.createElement('button');
   btn.className = 'period-pick-btn';
   btn.dataset.period = p.num;
   btn.textContent = p.num + '교시';
-  btn.onclick = () => btn.classList.toggle('selected');
+  btn.onclick = (e) => { e.preventDefault(); btn.classList.toggle('selected'); };
   periodPick.appendChild(btn);
 });
 
-// 요일 단일 선택
 document.querySelectorAll('#class-day-pick .day-pick-btn').forEach(btn => {
-  btn.onclick = () => {
+  btn.onclick = (e) => {
+    e.preventDefault();
     document.querySelectorAll('#class-day-pick .day-pick-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
   };
 });
-// 알바 요일 다중 선택
+
 document.querySelectorAll('#part-day-pick .day-pick-btn').forEach(btn => {
-  btn.onclick = () => btn.classList.toggle('selected');
+  btn.onclick = (e) => { e.preventDefault(); btn.classList.toggle('selected'); };
 });
 
+// ── 수업 추가 ──
 document.getElementById('add-class-btn').onclick = () => {
   const name = document.getElementById('class-name').value.trim();
   const prof = document.getElementById('class-prof').value.trim();
   const room = document.getElementById('class-room').value.trim();
   const daySel = document.querySelector('#class-day-pick .day-pick-btn.selected');
   const periodSel = [...document.querySelectorAll('#class-period-pick .period-pick-btn.selected')].map(b => parseInt(b.dataset.period));
+  
   if (!name) { toast('과목명을 입력해 주세요'); return; }
   if (!daySel) { toast('요일을 선택해 주세요'); return; }
   if (!periodSel.length) { toast('교시를 선택해 주세요'); return; }
+  
   const all = getClasses();
   all.push({ id: Date.now().toString(), name, prof, room, day: parseInt(daySel.dataset.day), periods: periodSel });
   saveClasses(all);
   toast('수업 추가 완료!');
-  // 폼 리셋
+  
   document.getElementById('class-name').value = '';
   document.getElementById('class-prof').value = '';
   document.getElementById('class-room').value = '';
@@ -613,496 +591,17 @@ document.getElementById('add-class-btn').onclick = () => {
   renderAll();
 };
 
+// ── 알바 추가 ──
 document.getElementById('add-part-btn').onclick = () => {
   const name = document.getElementById('part-name').value.trim();
   const place = document.getElementById('part-place').value.trim();
   const start = document.getElementById('part-start').value;
   const end = document.getElementById('part-end').value;
   const daySel = [...document.querySelectorAll('#part-day-pick .day-pick-btn.selected')].map(b => parseInt(b.dataset.day));
+  
   if (!name) { toast('알바명을 입력해 주세요'); return; }
   if (!daySel.length) { toast('요일을 선택해 주세요'); return; }
   if (!start || !end) { toast('시간을 입력해 주세요'); return; }
+  
   const all = getParts();
-  all.push({ id: Date.now().toString(), name, place, days: daySel, start, end });
-  saveParts(all);
-  toast('알바 일정 추가!');
-  document.getElementById('part-name').value = '';
-  document.getElementById('part-place').value = '';
-  document.querySelectorAll('#part-day-pick .day-pick-btn').forEach(b => b.classList.remove('selected'));
-  renderAll();
-};
-
-// ── 시간표 그리드 렌더링 ──
-function renderTimetable() {
-  const grid = document.getElementById('timetable-grid');
-  const classes = getClasses();
-  const parts = getParts();
-  const hasSat = classes.some(c => c.day === 5) || parts.some(p => p.days.includes(5));
-  const hasSun = classes.some(c => c.day === 6) || parts.some(p => p.days.includes(6));
-  const numDays = hasSun ? 7 : (hasSat ? 6 : 5);
-  grid.className = 'timetable' + (hasSun ? ' with-sun' : hasSat ? ' with-sat' : '');
-  grid.innerHTML = '';
-
-  // 헤더
-  grid.appendChild(cell('', 'tt-cell tt-header'));
-  for (let d = 0; d < numDays; d++) grid.appendChild(cell(DAYS_KOR[d], 'tt-cell tt-header'));
-
-  // 시간 그리드
-  PERIODS.forEach(p => {
-    grid.appendChild(cell(p.num + '교시', 'tt-cell tt-time'));
-    for (let d = 0; d < numDays; d++) {
-      const cls = classes.find(c => c.day === d && c.periods.includes(p.num));
-      const partMatch = parts.find(pt => pt.days.includes(d) && isPeriodInPart(p, pt));
-      let c;
-      if (cls) {
-        c = cell(cls.name + (cls.room ? `<small>${cls.room}</small>` : ''), 'tt-cell has-class');
-        c.innerHTML = c.innerHTML; // already html
-      } else if (partMatch) {
-        c = cell(partMatch.name + (partMatch.place ? `<small>${partMatch.place}</small>` : ''), 'tt-cell has-part');
-      } else {
-        c = cell('', 'tt-cell');
-      }
-      grid.appendChild(c);
-    }
-  });
-}
-function cell(text, cls) {
-  const d = document.createElement('div');
-  d.className = cls;
-  d.innerHTML = text;
-  return d;
-}
-function isPeriodInPart(period, part) {
-  // period(09:00~09:50) vs part(start~end) 겹치는지
-  const pStart = toMin(period.start), pEnd = toMin(period.end);
-  const ptStart = toMin(part.start), ptEnd = toMin(part.end);
-  return pStart < ptEnd && pEnd > ptStart;
-}
-function toMin(t) {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-
-// ── 수업/알바 리스트 ──
-function renderClassList() {
-  const list = document.getElementById('class-list');
-  const classes = getClasses();
-  if (!classes.length) { list.innerHTML = '<div class="empty">등록된 수업이 없어요</div>'; return; }
-  list.innerHTML = '';
-  classes.forEach(c => {
-    const item = document.createElement('div');
-    item.className = 'item-card';
-    item.innerHTML = `
-      <div class="item-tag class"></div>
-      <div class="item-info">
-        <div class="item-name">${c.name}${c.prof ? ' · '+c.prof : ''}</div>
-        <div class="item-meta">${DAYS_KOR[c.day]}요일 · ${c.periods.map(p=>p+'교시').join(', ')}${c.room ? ' · '+c.room : ''}</div>
-      </div>
-      <button class="item-del" data-id="${c.id}">×</button>
-    `;
-    list.appendChild(item);
-  });
-  list.querySelectorAll('.item-del').forEach(btn => {
-    btn.onclick = () => {
-      saveClasses(getClasses().filter(c => c.id !== btn.dataset.id));
-      toast('삭제했어요');
-      renderAll();
-    };
-  });
-}
-
-function renderPartList() {
-  const list = document.getElementById('part-list');
-  const parts = getParts();
-  if (!parts.length) { list.innerHTML = '<div class="empty">등록된 알바가 없어요</div>'; return; }
-  list.innerHTML = '';
-  parts.forEach(p => {
-    const item = document.createElement('div');
-    item.className = 'item-card';
-    item.innerHTML = `
-      <div class="item-tag part"></div>
-      <div class="item-info">
-        <div class="item-name">${p.name}</div>
-        <div class="item-meta">${p.days.map(d=>DAYS_KOR[d]).join(', ')} · ${p.start}~${p.end}${p.place ? ' · '+p.place : ''}</div>
-      </div>
-      <button class="item-del" data-id="${p.id}">×</button>
-    `;
-    list.appendChild(item);
-  });
-  list.querySelectorAll('.item-del').forEach(btn => {
-    btn.onclick = () => {
-      saveParts(getParts().filter(p => p.id !== btn.dataset.id));
-      toast('삭제했어요');
-      renderAll();
-    };
-  });
-}
-
-// ── 캘린더 ──
-let calCurrentDate = new Date();
-let calSelectedDate = new Date();
-calCurrentDate.setDate(1);
-calSelectedDate.setHours(0,0,0,0);
-
-function renderCalendar() {
-  const year = calCurrentDate.getFullYear();
-  const month = calCurrentDate.getMonth();
-  document.getElementById('cal-month').textContent = `${year}년 ${month+1}월`;
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const lastDate = new Date(year, month+1, 0).getDate();
-  const prevLastDate = new Date(year, month, 0).getDate();
-
-  const days = document.getElementById('cal-days');
-  days.innerHTML = '';
-
-  // 이전 달 채우기
-  for (let i = firstDay-1; i >= 0; i--) {
-    days.appendChild(makeDayCell(year, month-1, prevLastDate - i, true));
-  }
-  // 이번 달
-  for (let i = 1; i <= lastDate; i++) {
-    days.appendChild(makeDayCell(year, month, i, false));
-  }
-  // 다음 달 채우기 (6주 채우기)
-  const filled = firstDay + lastDate;
-  const remain = (7 - filled % 7) % 7;
-  for (let i = 1; i <= remain; i++) {
-    days.appendChild(makeDayCell(year, month+1, i, true));
-  }
-
-  renderCalDayDetail();
-}
-
-function makeDayCell(y, m, d, otherMonth) {
-  const date = new Date(y, m, d);
-  const dKey = dateKey(date);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const isToday = dKey === dateKey(today);
-  const isSelected = dKey === dateKey(calSelectedDate);
-
-  const cell = document.createElement('div');
-  cell.className = 'cal-day' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
-  cell.innerHTML = `<div class="cal-day-num">${d}</div><div class="cal-day-dots"></div>`;
-
-  // 점 표시
-  const dayIdx = (date.getDay() + 6) % 7; // 일=6, 월=0
-  const dots = cell.querySelector('.cal-day-dots');
-  if (getClasses().some(c => c.day === dayIdx)) dots.innerHTML += '<div class="cal-dot class"></div>';
-  if (getParts().some(p => p.days.includes(dayIdx))) dots.innerHTML += '<div class="cal-dot part"></div>';
-  if (getEvents().some(e => e.date === dKey)) dots.innerHTML += '<div class="cal-dot event"></div>';
-
-  cell.onclick = () => {
-    calSelectedDate = date;
-    renderCalendar();
-  };
-  return cell;
-}
-
-function renderCalDayDetail() {
-  const title = document.getElementById('cal-detail-title');
-  const list = document.getElementById('cal-detail-list');
-  const date = calSelectedDate;
-  const dayIdx = (date.getDay() + 6) % 7;
-  const dKey = dateKey(date);
-  const m = date.getMonth()+1, d = date.getDate();
-  title.textContent = `${m}월 ${d}일 (${DAYS_KOR[dayIdx]}) 일정`;
-
-  const items = [];
-  getClasses().filter(c => c.day === dayIdx).forEach(c => {
-    items.push({
-      type: 'class',
-      name: c.name + (c.room ? ` · ${c.room}` : ''),
-      start: PERIODS[c.periods[0]-1].start,
-      end: PERIODS[c.periods[c.periods.length-1]-1].end,
-    });
-  });
-  getParts().filter(p => p.days.includes(dayIdx)).forEach(p => {
-    items.push({ type: 'part', name: p.name + (p.place ? ` · ${p.place}` : ''), start: p.start, end: p.end });
-  });
-  getEvents().filter(e => e.date === dKey).forEach(e => {
-    items.push({ type: 'event', name: e.title + (e.place ? ` · ${e.place}` : ''), start: e.start, end: e.end, id: e.id });
-  });
-  items.sort((a, b) => a.start.localeCompare(b.start));
-
-  if (!items.length) { list.innerHTML = '<div class="empty">이날은 일정이 없어요</div>'; return; }
-  list.innerHTML = '';
-  items.forEach(it => {
-    const el = document.createElement('div');
-    el.className = `today-item ${it.type}`;
-    el.innerHTML = `
-      <div class="today-item-tag"></div>
-      <div class="today-item-time">${it.start}</div>
-      <div class="today-item-info">
-        <div class="today-item-name">${it.name}</div>
-        <div class="today-item-meta">${it.start} ~ ${it.end}</div>
-      </div>
-      ${it.id ? `<button class="item-del" data-id="${it.id}">×</button>` : ''}
-    `;
-    list.appendChild(el);
-  });
-  list.querySelectorAll('.item-del').forEach(btn => {
-    btn.onclick = () => {
-      saveEvents(getEvents().filter(e => e.id !== btn.dataset.id));
-      toast('약속 삭제됨');
-      renderAll();
-    };
-  });
-}
-
-document.getElementById('cal-prev').onclick = () => {
-  calCurrentDate.setMonth(calCurrentDate.getMonth()-1);
-  renderCalendar();
-};
-document.getElementById('cal-next').onclick = () => {
-  calCurrentDate.setMonth(calCurrentDate.getMonth()+1);
-  renderCalendar();
-};
-
-// ── 약속 추가 모달 ──
-document.getElementById('fab').onclick = () => {
-  document.getElementById('event-date').value = dateKey(calSelectedDate);
-  document.getElementById('modal-bg').classList.add('show');
-};
-document.getElementById('cancel-event-btn').onclick = () => {
-  document.getElementById('modal-bg').classList.remove('show');
-};
-document.getElementById('modal-bg').onclick = (e) => {
-  if (e.target.id === 'modal-bg') document.getElementById('modal-bg').classList.remove('show');
-};
-document.getElementById('save-event-btn').onclick = () => {
-  const title = document.getElementById('event-title').value.trim();
-  const date = document.getElementById('event-date').value;
-  const place = document.getElementById('event-place').value.trim();
-  const start = document.getElementById('event-start').value;
-  const end = document.getElementById('event-end').value;
-  const memo = document.getElementById('event-memo').value.trim();
-  if (!title || !date) { toast('제목과 날짜를 입력해 주세요'); return; }
-  const all = getEvents();
-  all.push({ id: Date.now().toString(), title, date, place, start, end, memo });
-  saveEvents(all);
-  toast('약속이 저장됐어요!');
-  document.getElementById('event-title').value = '';
-  document.getElementById('event-place').value = '';
-  document.getElementById('event-memo').value = '';
-  document.getElementById('modal-bg').classList.remove('show');
-  renderAll();
-};
-
-// ── 빈 시간 계산 ──
-function renderFreetime() {
-  const list = document.getElementById('free-list');
-  list.innerHTML = '';
-
-  // 이번 주 월~일
-  const today = new Date(); today.setHours(0,0,0,0);
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday); d.setDate(monday.getDate() + i);
-    const dKey = dateKey(d);
-    const busy = [];
-
-    // 수업
-    getClasses().filter(c => c.day === i).forEach(c => {
-      busy.push({ start: toMin(PERIODS[c.periods[0]-1].start), end: toMin(PERIODS[c.periods[c.periods.length-1]-1].end) });
-    });
-    // 알바
-    getParts().filter(p => p.days.includes(i)).forEach(p => {
-      busy.push({ start: toMin(p.start), end: toMin(p.end) });
-    });
-    // 약속
-    getEvents().filter(e => e.date === dKey).forEach(e => {
-      busy.push({ start: toMin(e.start), end: toMin(e.end) });
-    });
-
-    // 9:00 ~ 22:00 사이 빈 시간 계산
-    busy.sort((a,b) => a.start - b.start);
-    const free = [];
-    let cur = 9*60;
-    const endOfDay = 22*60;
-    busy.forEach(b => {
-      if (b.start > cur) free.push({ start: cur, end: Math.min(b.start, endOfDay) });
-      cur = Math.max(cur, b.end);
-    });
-    if (cur < endOfDay) free.push({ start: cur, end: endOfDay });
-
-    const card = document.createElement('div');
-    card.className = 'free-day-card';
-    const m = d.getMonth()+1, day = d.getDate();
-    card.innerHTML = `<div class="free-day-title">${m}월 ${day}일 (${DAYS_KOR[i]})</div>`;
-
-    // 막대 시각화
-    const bar = document.createElement('div');
-    bar.className = 'busy-bar';
-    const totalMin = endOfDay - 9*60;
-    let pos = 9*60;
-    free.forEach(f => {
-      if (f.start > pos) {
-        const seg = document.createElement('div');
-        seg.className = 'busy-segment busy';
-        seg.style.flex = (f.start - pos);
-        bar.appendChild(seg);
-      }
-      const seg = document.createElement('div');
-      seg.className = 'busy-segment free';
-      seg.style.flex = (f.end - f.start);
-      bar.appendChild(seg);
-      pos = f.end;
-    });
-    if (pos < endOfDay) {
-      const seg = document.createElement('div');
-      seg.className = 'busy-segment busy';
-      seg.style.flex = (endOfDay - pos);
-      bar.appendChild(seg);
-    }
-    card.appendChild(bar);
-    const label = document.createElement('div');
-    label.className = 'busy-label';
-    label.innerHTML = '<span>9:00</span><span>15:30</span><span>22:00</span>';
-    card.appendChild(label);
-
-    if (free.length) {
-      const slots = document.createElement('div');
-      slots.style.marginTop = '8px';
-      free.forEach(f => {
-        const slot = document.createElement('div');
-        slot.className = 'free-slot';
-        slot.textContent = `${minToStr(f.start)}~${minToStr(f.end)} (${Math.floor((f.end-f.start)/60)}h${(f.end-f.start)%60 ? (f.end-f.start)%60+'m' : ''})`;
-        slots.appendChild(slot);
-      });
-      card.appendChild(slots);
-    } else {
-      const noFree = document.createElement('div');
-      noFree.style.cssText = 'margin-top:8px;font-size:12px;color:var(--text3)';
-      noFree.textContent = '🥲 이날은 빈 시간이 없어요';
-      card.appendChild(noFree);
-    }
-
-    list.appendChild(card);
-  }
-}
-function minToStr(m) {
-  return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-}
-
-// ── 홈 ── 
-function renderHome() {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const dayIdx = (today.getDay() + 6) % 7;
-  const dKey = dateKey(today);
-
-  document.getElementById('today-date').textContent = `${today.getMonth()+1}월 ${today.getDate()}일 (${DAYS_KOR[dayIdx]})`;
-
-  // 통계
-  const classes = getClasses();
-  const parts = getParts();
-  const events = getEvents();
-  const totalClassHours = classes.reduce((s,c) => s + c.periods.length, 0);
-  const totalPartHours = parts.reduce((s,p) => {
-    return s + p.days.length * ((toMin(p.end) - toMin(p.start)) / 60);
-  }, 0);
-  const upcoming = events.filter(e => e.date >= dKey).length;
-
-  document.getElementById('stat-classes').textContent = totalClassHours;
-  document.getElementById('stat-part').textContent = Math.round(totalPartHours);
-  document.getElementById('stat-events').textContent = upcoming;
-
-  // 오늘 빈 시간
-  const busy = [];
-  classes.filter(c => c.day === dayIdx).forEach(c => {
-    busy.push({ start: toMin(PERIODS[c.periods[0]-1].start), end: toMin(PERIODS[c.periods[c.periods.length-1]-1].end) });
-  });
-  parts.filter(p => p.days.includes(dayIdx)).forEach(p => {
-    busy.push({ start: toMin(p.start), end: toMin(p.end) });
-  });
-  events.filter(e => e.date === dKey).forEach(e => {
-    busy.push({ start: toMin(e.start), end: toMin(e.end) });
-  });
-  busy.sort((a,b) => a.start - b.start);
-  let cur = 9*60, freeMin = 0;
-  busy.forEach(b => {
-    if (b.start > cur) freeMin += Math.min(b.start, 22*60) - cur;
-    cur = Math.max(cur, b.end);
-  });
-  if (cur < 22*60) freeMin += 22*60 - cur;
-  document.getElementById('stat-free').textContent = Math.floor(freeMin/60);
-
-  // 오늘 일정
-  const todayItems = [];
-  classes.filter(c => c.day === dayIdx).forEach(c => {
-    todayItems.push({
-      type: 'class', name: c.name + (c.room ? ` · ${c.room}` : ''),
-      start: PERIODS[c.periods[0]-1].start,
-      end: PERIODS[c.periods[c.periods.length-1]-1].end,
-    });
-  });
-  parts.filter(p => p.days.includes(dayIdx)).forEach(p => {
-    todayItems.push({ type: 'part', name: p.name + (p.place ? ` · ${p.place}` : ''), start: p.start, end: p.end });
-  });
-  events.filter(e => e.date === dKey).forEach(e => {
-    todayItems.push({ type: 'event', name: e.title + (e.place ? ` · ${e.place}` : ''), start: e.start, end: e.end });
-  });
-  todayItems.sort((a,b) => a.start.localeCompare(b.start));
-
-  const todayList = document.getElementById('today-list');
-  if (!todayItems.length) {
-    todayList.innerHTML = '<div class="empty">오늘은 일정이 없어요 🥳</div>';
-  } else {
-    todayList.innerHTML = '';
-    todayItems.forEach(it => {
-      const el = document.createElement('div');
-      el.className = `today-item ${it.type}`;
-      el.innerHTML = `
-        <div class="today-item-tag"></div>
-        <div class="today-item-time">${it.start}</div>
-        <div class="today-item-info">
-          <div class="today-item-name">${it.name}</div>
-          <div class="today-item-meta">${it.start} ~ ${it.end}</div>
-        </div>
-      `;
-      todayList.appendChild(el);
-    });
-  }
-
-  // 다가오는 약속
-  const upcomingList = document.getElementById('upcoming-list');
-  const upcomingEvents = events.filter(e => e.date >= dKey).sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start)).slice(0, 5);
-  if (!upcomingEvents.length) {
-    upcomingList.innerHTML = '<div class="empty">예정된 약속이 없어요</div>';
-  } else {
-    upcomingList.innerHTML = '';
-    upcomingEvents.forEach(e => {
-      const ed = new Date(e.date);
-      const isToday = e.date === dKey;
-      const el = document.createElement('div');
-      el.className = 'today-item event';
-      el.innerHTML = `
-        <div class="today-item-tag"></div>
-        <div class="today-item-time">${isToday ? '오늘' : (ed.getMonth()+1)+'/'+ed.getDate()}</div>
-        <div class="today-item-info">
-          <div class="today-item-name">${e.title}${e.place ? ' · '+e.place : ''}</div>
-          <div class="today-item-meta">${e.start} ~ ${e.end}</div>
-        </div>
-      `;
-      upcomingList.appendChild(el);
-    });
-  }
-}
-
-// ── 전체 렌더링 ──
-function renderAll() {
-  renderHome();
-  renderTimetable();
-  renderClassList();
-  renderPartList();
-  renderCalendar();
-  renderFreetime();
-}
-
-// 초기 실행
-renderAll();
-</script>
-</body>
-</html>
+  all.push({ id: Date.now().toString(), name, place, days
