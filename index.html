@@ -604,4 +604,381 @@ document.getElementById('add-part-btn').onclick = () => {
   if (!start || !end) { toast('시간을 입력해 주세요'); return; }
   
   const all = getParts();
-  all.push({ id: Date.now().toString(), name, place, days
+  all.push({ id: Date.now().toString(), name, place, days, start, end });
+  saveParts(all);
+  toast('알바 일정 추가 완료!');
+  
+  document.getElementById('part-name').value = '';
+  document.getElementById('part-place').value = '';
+  document.querySelectorAll('#part-day-pick .day-pick-btn').forEach(b => b.classList.remove('selected'));
+  renderAll();
+};
+
+// ── 모달 제어 ──
+const modalBg = document.getElementById('modal-bg');
+document.getElementById('fab').onclick = () => {
+  const today = new Date();
+  document.getElementById('event-date').value = dateKey(today);
+  modalBg.classList.add('show');
+};
+document.getElementById('cancel-event-btn').onclick = () => modalBg.classList.remove('show');
+
+// ── 약속 저장 ──
+document.getElementById('save-event-btn').onclick = () => {
+  const title = document.getElementById('event-title').value.trim();
+  const date = document.getElementById('event-date').value;
+  const place = document.getElementById('event-place').value.trim();
+  const start = document.getElementById('event-start').value;
+  const end = document.getElementById('event-end').value;
+  const memo = document.getElementById('event-memo').value.trim();
+  
+  if (!title) { toast('일정 제목을 입력해 주세요'); return; }
+  if (!date) { toast('날짜를 선택해 주세요'); return; }
+  
+  const all = getEvents();
+  all.push({ id: Date.now().toString(), title, date, place, start, end, memo });
+  saveEvents(all);
+  
+  modalBg.classList.remove('show');
+  toast('약속이 저장되었습니다!');
+  
+  document.getElementById('event-title').value = '';
+  document.getElementById('event-place').value = '';
+  document.getElementById('event-memo').value = '';
+  renderAll();
+};
+
+// ── 캘린더 변수 및 네비게이션 ──
+let currDate = new Date();
+document.getElementById('cal-prev').onclick = () => { currDate.setMonth(currDate.getMonth() - 1); renderAll(); };
+document.getElementById('cal-next').onclick = () => { currDate.setMonth(currDate.getMonth() + 1); renderAll(); };
+let selectedDateStr = dateKey(new Date());
+
+// ── 삭제 함수 ──
+function delItem(type, id) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  if (type === 'class') { saveClasses(getClasses().filter(x => x.id !== id)); }
+  if (type === 'part') { saveParts(getParts().filter(x => x.id !== id)); }
+  if (type === 'event') { saveEvents(getEvents().filter(x => x.id !== id)); }
+  toast('삭제되었습니다.');
+  renderAll();
+}
+
+// ── 핵심 렌더링 함수 ──
+function renderAll() {
+  const classes = getClasses();
+  const parts = getParts();
+  const events = getEvents();
+  const today = new Date();
+  const tDay = today.getDay(); // 0:일~6:토
+  
+  // 1. 대시보드 스탯 업데이트
+  document.getElementById('stat-classes').textContent = classes.length;
+  document.getElementById('stat-part').textContent = parts.length;
+  
+  const activeEvents = events.filter(e => new Date(e.date) >= new Date().setHours(0,0,0,0));
+  document.getElementById('stat-events').textContent = activeEvents.length;
+  
+  // 오늘 공강 교시 계산
+  const todayClasses = classes.filter(c => c.day === tDay);
+  const usedPeriods = new Set();
+  todayClasses.forEach(c => c.periods.forEach(p => usedPeriods.add(p)));
+  document.getElementById('stat-free').textContent = Math.max(0, 10 - usedPeriods.size);
+  
+  document.getElementById('today-date').textContent = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일 (${DAYS_KOR[tDay]})`;
+
+  // 2. 오늘의 일정 목록
+  const todayList = document.getElementById('today-list');
+  todayList.innerHTML = '';
+  let todayItems = [];
+  
+  classes.filter(c => c.day === tDay).forEach(c => {
+    const minP = Math.min(...c.periods);
+    const maxP = Math.max(...c.periods);
+    todayItems.push({
+      time: PERIODS[minP-1].start,
+      type: 'class',
+      name: c.name,
+      meta: `${minP}~${maxP}교시 ${c.room ? '• ' + c.room : ''}`,
+      rawTime: PERIODS[minP-1].start
+    });
+  });
+  
+  parts.filter(p => p.days.includes(tDay)).forEach(p => {
+    todayItems.push({ time: p.start, type: 'part', name: p.name, meta: p.place || '장소 미지정', rawTime: p.start });
+  });
+  
+  events.filter(e => e.date === dateKey(today)).forEach(e => {
+    todayItems.push({ time: e.start, type: 'event', name: e.title, meta: e.place || '장소 미지정', rawTime: e.start });
+  });
+  
+  todayItems.sort((a,b) => a.rawTime.localeCompare(b.rawTime));
+  
+  if (todayItems.length === 0) {
+    todayList.innerHTML = '<div class="empty">오늘 예정된 일정이 없습니다. 공강을 즐기세요! 😎</div>';
+  } else {
+    todayItems.forEach(item => {
+      todayList.innerHTML += `
+        <div class="today-item ${item.type}">
+          <div class="today-item-time">${item.time}</div>
+          <div class="today-item-tag"></div>
+          <div class="today-item-info">
+            <div class="today-item-name">${item.name}</div>
+            <div class="today-item-meta">${item.meta}</div>
+          </div>
+        </div>`;
+    });
+  }
+
+  // 3. 다가오는 일정 (3개까지만)
+  const upcomingList = document.getElementById('upcoming-list');
+  upcomingList.innerHTML = '';
+  const upEvents = events
+    .filter(e => e.date >= dateKey(today))
+    .sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
+    .slice(0, 3);
+    
+  if (upEvents.length === 0) {
+    upcomingList.innerHTML = '<div class="empty">다가오는 약속이 없습니다.</div>';
+  } else {
+    upEvents.forEach(e => {
+      const d = new Date(e.date);
+      upcomingList.innerHTML += `
+        <div class="today-item event">
+          <div class="today-item-time" style="font-size:11px; min-width:65px;">${d.getMonth()+1}/${d.getDate()}(${DAYS_KOR[d.getDay()]})</div>
+          <div class="today-item-tag"></div>
+          <div class="today-item-info">
+            <div class="today-item-name">${e.title}</div>
+            <div class="today-item-meta">${e.start} ${e.place ? '• ' + e.place : ''}</div>
+          </div>
+        </div>`;
+    });
+  }
+
+  // 4. 시간표 그리기
+  const grid = document.getElementById('timetable-grid');
+  grid.innerHTML = '';
+  
+  // 헤더 영역 생성
+  grid.appendChild(createCell('교시', 'tt-header tt-time'));
+  for (let d = 1; d <= 5; d++) grid.appendChild(createCell(DAYS_KOR[d], 'tt-header'));
+  
+  // 교시별 셀 배치
+  PERIODS.forEach(p => {
+    grid.appendChild(createCell(`${p.num}<br><span style="font-size:8px;color:var(--text3)">${p.start}</span>`, 'tt-time'));
+    for (let d = 1; d <= 5; d++) {
+      const matchClass = classes.find(c => c.day === d && c.periods.includes(p.num));
+      const matchPart = parts.find(pt => pt.days.includes(d) && isPeriodOverlapping(p.num, pt.start, pt.end));
+      
+      if (matchClass) {
+        grid.appendChild(createCell(`<strong>${matchClass.name}</strong><small>${matchClass.room || ''}</small>`, 'has-class'));
+      } else if (matchPart) {
+        grid.appendChild(createCell(`<strong>${matchPart.name}</strong><small>알바</small>`, 'has-part'));
+      } else {
+        grid.appendChild(createCell('', ''));
+      }
+    }
+  });
+
+  // 5. 등록된 관리 리스트 출력 (수업/알바)
+  const classList = document.getElementById('class-list');
+  classList.innerHTML = classes.length ? '' : '<div class="empty">등록된 수업이 없습니다.</div>';
+  classes.forEach(c => {
+    classList.innerHTML += `
+      <div class="item-card">
+        <div class="item-tag class"></div>
+        <div class="item-info">
+          <div class="item-name">${c.name}</div>
+          <div class="item-meta">${DAYS_KOR[c.day]}요일 ${c.periods.join(', ')}교시 ${c.prof ? '• ' + c.prof : ''} ${c.room ? '• ' + c.room : ''}</div>
+        </div>
+        <button class="item-del" onclick="delItem('class','${c.id}')">✕</button>
+      </div>`;
+  });
+
+  const partList = document.getElementById('part-list');
+  partList.innerHTML = parts.length ? '' : '<div class="empty">등록된 알바 일정이 없습니다.</div>';
+  parts.forEach(p => {
+    const daysStr = p.days.map(d => DAYS_KOR[d]).join(', ');
+    partList.innerHTML += `
+      <div class="item-card">
+        <div class="item-tag part"></div>
+        <div class="item-info">
+          <div class="item-name">${p.name}</div>
+          <div class="item-meta">${daysStr} ${p.start}~${p.end} ${p.place ? '• ' + p.place : ''}</div>
+        </div>
+        <button class="item-del" onclick="delItem('part','${p.id}')">✕</button>
+      </div>`;
+  });
+
+  // 6. 달력(캘린더) 렌더링
+  renderCalendar(classes, parts, events);
+
+  // 7. 평일 빈 시간 매칭
+  renderFreeTime(classes, parts);
+}
+
+function createCell(html, className) {
+  const el = document.createElement('div');
+  el.className = `tt-cell ${className}`;
+  el.innerHTML = html;
+  return el;
+}
+
+function isPeriodOverlapping(pNum, startStr, endStr) {
+  const p = PERIODS[pNum-1];
+  return (startStr < p.end && endStr > p.start);
+}
+
+// ── 달력 그리기 상세 ──
+function renderCalendar(classes, parts, events) {
+  const monthEl = document.getElementById('cal-month');
+  const daysContainer = document.getElementById('cal-days');
+  daysContainer.innerHTML = '';
+  
+  const y = currDate.getFullYear();
+  const m = currDate.getMonth();
+  monthEl.textContent = `${y}년 ${m + 1}월`;
+  
+  const firstDay = new Date(y, m, 1).getDay();
+  const lastDate = new Date(y, m + 1, 0).getDate();
+  const prevLastDate = new Date(y, m, 0).getDate();
+  
+  // 지난달 빈칸 채우기
+  for (let i = firstDay; i > 0; i--) {
+    const d = prevLastDate - i + 1;
+    daysContainer.appendChild(createDayCell(y, m - 1, d, true, classes, parts, events));
+  }
+  // 이번달 채우기
+  for (let d = 1; d <= lastDate; d++) {
+    daysContainer.appendChild(createDayCell(y, m, d, false, classes, parts, events));
+  }
+  // 다음달 빈칸 채우기
+  const totalCells = firstDay + lastDate;
+  const nextCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let d = 1; d <= nextCells; d++) {
+    daysContainer.appendChild(createDayCell(y, m + 1, d, true, classes, parts, events));
+  }
+  
+  renderCalDetail();
+}
+
+function createDayCell(y, m, d, isOther, classes, parts, events) {
+  const dateObj = new Date(y, m, d);
+  const key = dateKey(dateObj);
+  const dayOfWeek = dateObj.getDay();
+  
+  const cell = document.createElement('div');
+  cell.className = 'cal-day';
+  if (isOther) cell.classList.add('other-month');
+  
+  if (key === dateKey(new Date())) cell.classList.add('today');
+  if (key === selectedDateStr) cell.classList.add('selected');
+  
+  cell.innerHTML = `<div class="cal-day-num">${d}</div>`;
+  
+  // 도트 표시기 설정
+  const dotsContainer = document.createElement('div');
+  dotsContainer.className = 'cal-day-dots';
+  
+  let hasClass = classes.some(c => c.day === dayOfWeek) && !isOther;
+  let hasPart = parts.some(p => p.days.includes(dayOfWeek)) && !isOther;
+  let hasEvent = events.some(e => e.date === key);
+  
+  if (hasClass) dotsContainer.innerHTML += '<div class="cal-dot class"></div>';
+  if (hasPart) dotsContainer.innerHTML += '<div class="cal-dot part"></div>';
+  if (hasEvent) dotsContainer.innerHTML += '<div class="cal-dot event"></div>';
+  
+  cell.appendChild(dotsContainer);
+  
+  cell.onclick = () => {
+    selectedDateStr = key;
+    document.querySelectorAll('.cal-day').forEach(c => c.classList.remove('selected'));
+    cell.classList.add('selected');
+    renderCalDetail();
+  };
+  
+  return cell;
+}
+
+function renderCalDetail() {
+  const dObj = new Date(selectedDateStr);
+  const dayOfWeek = dObj.getDay();
+  document.getElementById('cal-detail-title').textContent = `${dObj.getMonth()+1}월 ${dObj.getDate()}일 (${DAYS_KOR[dayOfWeek]}) 일정`;
+  
+  const list = document.getElementById('cal-detail-list');
+  list.innerHTML = '';
+  
+  let items = [];
+  getClasses().filter(c => c.day === dayOfWeek).forEach(c => {
+    items.push({ type:'class', title: c.name, time: `${Math.min(...c.periods)}~${Math.max(...c.periods)}교시`, meta: c.room });
+  });
+  getParts().filter(p => p.days.includes(dayOfWeek)).forEach(p => {
+    items.push({ type:'part', title: p.name, time: `${p.start}~${p.end}`, meta: p.place });
+  });
+  getEvents().filter(e => e.date === selectedDateStr).forEach(e => {
+    items.push({ type:'event', title: e.title, time: `${e.start}~${e.end}`, meta: e.place, id: e.id });
+  });
+  
+  if(items.length === 0) {
+    list.innerHTML = '<div class="empty" style="padding:10px 0">일정이 없습니다.</div>';
+  } else {
+    items.forEach(item => {
+      let delBtn = item.type === 'event' ? `<button class="item-del" onclick="event.stopPropagation(); delItem('event','${item.id}')" style="font-size:14px;padding:2px 6px">✕</button>` : '';
+      list.innerHTML += `
+        <div class="today-item ${item.type}" style="margin-bottom:4px; padding:8px;">
+          <div class="today-item-time" style="font-size:12px; min-width:70px">${item.time}</div>
+          <div class="today-item-tag"></div>
+          <div class="today-item-info">
+            <div class="today-item-name" style="font-size:13px">${item.title}</div>
+            <div class="today-item-meta" style="font-size:10px">${item.meta || ''}</div>
+          </div>
+          ${delBtn}
+        </div>`;
+    });
+  }
+}
+
+// ── 빈 시간 계산 ──
+function renderFreeTime(classes, parts) {
+  const container = document.getElementById('free-list');
+  container.innerHTML = '';
+  
+  for (let d = 1; d <= 5; d++) {
+    let busyPeriods = new Set();
+    
+    classes.filter(c => c.day === d).forEach(c => c.periods.forEach(p => busyPeriods.add(p)));
+    parts.filter(pt => pt.days.includes(d)).forEach(pt => {
+      PERIODS.forEach(p => {
+        if (isPeriodOverlapping(p.num, pt.start, pt.end)) busyPeriods.add(p.num);
+      });
+    });
+    
+    let freeSlots = [];
+    PERIODS.forEach(p => {
+      if (!busyPeriods.has(p.num)) freeSlots.push(p.num);
+    });
+    
+    let card = document.createElement('div');
+    card.className = 'free-day-card';
+    
+    let title = document.createElement('div');
+    title.className = 'free-day-title';
+    title.textContent = `${DAYS_KOR[d]}요일`;
+    card.appendChild(title);
+    
+    if (freeSlots.length === 0) {
+      card.innerHTML += '<span style="font-size:12px;color:var(--text3)">빈 교시가 없습니다 😭</span>';
+    } else {
+      freeSlots.forEach(s => {
+        card.innerHTML += `<span class="free-slot">${s}교시 (${PERIODS[s-1].start})</span>`;
+      });
+    }
+    container.appendChild(card);
+  }
+}
+
+// 초기화 가동
+renderAll();
+</script>
+</body>
+</html>
