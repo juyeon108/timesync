@@ -597,10 +597,10 @@ document.getElementById('add-part-btn').onclick = () => {
   const place = document.getElementById('part-place').value.trim();
   const start = document.getElementById('part-start').value;
   const end = document.getElementById('part-end').value;
-  const daySel = [...document.querySelectorAll('#part-day-pick .day-pick-btn.selected')].map(b => parseInt(b.dataset.day));
+  const days = [...document.querySelectorAll('#part-day-pick .day-pick-btn.selected')].map(b => parseInt(b.dataset.day));
   
   if (!name) { toast('알바명을 입력해 주세요'); return; }
-  if (!daySel.length) { toast('요일을 선택해 주세요'); return; }
+  if (!days.length) { toast('요일을 선택해 주세요'); return; }
   if (!start || !end) { toast('시간을 입력해 주세요'); return; }
   
   const all = getParts();
